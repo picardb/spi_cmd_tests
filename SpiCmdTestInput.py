@@ -6,7 +6,7 @@ class SpiCmdTestInput:
 
     def __init__(self, filename = ""):
         self.__cycles_number = 1
-        self.__commands = {}
+        self.__commands = []
         self.__CMD_ID = {
             "StartApplication": 0x10,
             "GotoSleep": 0x11,
@@ -15,7 +15,7 @@ class SpiCmdTestInput:
         self.__RSP_ID = {
             "StartApplicationRsp": 0x90,
             "StartAdvertisingRsp": 0x92,
-            "UnavailableCmd": 0xFF
+            "UnavailableCmd": 0xF0
         }
 
     def __str__(self):
@@ -65,7 +65,7 @@ class SpiCmdTestInput:
             intel_hex[address] = 1                  # Expected
             intel_hex[address + 1] = rsp_id         # ID
             intel_hex[address + 2] = rsp_len        # Length
-            address += 2
+            address += 3
             if rsp_payload is not None:
                 for byte in rsp_payload:            # Payload
                     intel_hex[address] = int(byte, 16)
@@ -75,17 +75,42 @@ class SpiCmdTestInput:
             intel_hex[address + 1] = 0xFF           # ID
             intel_hex[address + 2] = 0xFF           # Length
             address += 3
-        for i in range(0, 119 - rsp_len):           # Padding
+        for i in range(0, 117 - rsp_len):           # Padding
             intel_hex[address] = 0xFF
             address += 1
 
         return address
+
+    def __hex_to_cmd(self, intel_hex, address):
+        cmd = {}
+
+        for name, id in self.__CMD_ID.items():
+            if intel_hex[address] == id:
+                cmd["cmd_name"] = name
+        if "cmd_name" not in cmd:
+            cmd["cmd_name"] = hex(intel_hex[address]).lstrip("0x")
+        address += 1
+
+        # TODO
+
+        return cmd, address + 237
 
     def from_json(self, filename):
         with open(filename, "r") as in_file:
             in_data = json.load(in_file)
             self.__cycles_number = in_data.get("cycles_number", 1)
             self.__commands = in_data.get("commands")
+
+    def from_hex(self, filename, offset):
+        ih = IntelHex()
+        ih.fromfile(filename, format='hex')
+        self.__cycles_number = ih[offset] * 256 + ih[offset + 1]
+        cmd_number = ih[offset + 2]
+        offset += 3
+        self.__commands = []
+        for i in range(0, cmd_number):
+            (cmd, offset) = self.__hex_to_cmd(ih, offset)
+            self.__commands.append(cmd)
 
     def to_hex(self, filename, offset):
         ih = IntelHex()
