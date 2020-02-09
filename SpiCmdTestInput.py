@@ -84,16 +84,49 @@ class SpiCmdTestInput:
     def __hex_to_cmd(self, intel_hex, address):
         cmd = {}
 
-        for name, id in self.__CMD_ID.items():
-            if intel_hex[address] == id:
-                cmd["cmd_name"] = name
+        for cmd_name, cmd_id in self.__CMD_ID.items():
+            if intel_hex[address] == cmd_id:
+                cmd["cmd_name"] = cmd_name
         if "cmd_name" not in cmd:
-            cmd["cmd_name"] = hex(intel_hex[address]).lstrip("0x")
+            cmd["cmd_name"] = "%02X" % intel_hex[address]
         address += 1
 
-        # TODO
+        cmd_len = intel_hex[address]
+        address += 1
+        if cmd_len != 0:
+            cmd_payload = []
+            for i in range(0, cmd_len):
+                cmd_payload.append("%02X" % intel_hex[address + i])
+            cmd["cmd_payload"] = cmd_payload
+        address += 116
 
-        return cmd, address + 237
+        if intel_hex[address] == 0:
+            expected_rsp = False
+        else:
+            expected_rsp = True
+        cmd["expected_rsp"] = expected_rsp
+        address += 1
+
+        if expected_rsp:
+            for rsp_name, rsp_id in self.__RSP_ID.items():
+                if intel_hex[address] == rsp_id:
+                    cmd["rsp_name"] = rsp_name
+            if "rsp_name" not in cmd:
+                cmd["rsp_name"] = "%02X" % intel_hex[address]
+            address += 1
+
+            rsp_len = intel_hex[address]
+            address += 1
+            if rsp_len != 0:
+                rsp_payload = []
+                for i in range(0, rsp_len):
+                    rsp_payload.append("%02X" % intel_hex[address + i])
+                cmd["rsp_payload"] = rsp_payload
+            address += 117
+        else:
+            address += 119
+
+        return cmd, address
 
     def from_json(self, filename):
         with open(filename, "r") as in_file:
@@ -126,6 +159,14 @@ class SpiCmdTestInput:
             offset = self.__cmd_to_hex(cmd, ih, offset)
 
         ih.write_hex_file(filename)
+
+    def to_json(self, filename):
+        with open(filename, "w") as out_file:
+            json.dump({"cycles_number": self.__cycles_number,
+                       "commands": self.__commands
+                       },
+                      fp=out_file,
+                      indent=2)
 
     def cmd_number(self):
         return len(self.__commands)
