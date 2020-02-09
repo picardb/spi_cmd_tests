@@ -1,0 +1,29 @@
+{
+  "cycles_number" : 1,
+  "commands" : [
+    {
+      "cmd_name" : "StartApplication",
+      "cmd_payload" : ["12", "34", "56", "78", "90"],
+      "expected_rsp" : true,
+      "rsp_name" : "StartApplicationRsp",
+      "rsp_payload" : ["00"]
+    },
+    {
+      "cmd_name" : "StartAdvertising",
+      "cmd_payload" : ["CA", "FE", "BA", "BE"],
+      "expected_rsp" : true,
+      "rsp_name" : "StartAdvertisingRsp"
+    },
+    {
+      "cmd_name" : "GotoSleep",
+      "expected_rsp" : false
+    },
+    {
+      "cmd_name" : "A0",
+      "cmd_payload" : ["AA", "55", "AA", "55", "AA", "55"],
+      "expected_rsp" : true,
+      "rsp_name" : "UnavailableCmd",
+      "rsp_payload" : ["A0"]
+    }
+  ]
+}
